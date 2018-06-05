@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Calendar</title>
+    <meta charset='utf-8' />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <script async defer src="https://apis.google.com/js/api.js"
+      onload="this.onload=function(){};handleClientLoad()"
+      onreadystatechange="if (this.readyState === 'complete') this.onload()">
+    </script>
+  </head>
+  <body>
+    <button class="button button2" id="authorize-button" style="display: none;">Authorize</button>
+    <button class="button button2" id="signout-button" style="display: none;">Sign Out</button>
+    <pre id="content"></pre>
+    <div class="center">
+      <div class="title"><img src='cal.png'/><span id="datetime"></span></div>
+      <div class="names" id='names'></div>
+      <div class="scroll" id="ex3">
+        <div class="main" id='calendar'>
+        </div>
+        <div class="times">
+          <span style="left: 0px">0:00<br/> AM</span>
+          <span style="left: 52px">1:00<br/> AM</span>
+          <span style="left: 112px">2:00<br/> AM</span>
+          <span style="left: 172px">3:00<br/> AM</span>
+          <span style="left: 232px">4:00<br/> AM</span>
+          <span style="left: 292px">5:00<br/> AM</span>
+          <span style="left: 352px">6:00<br/> AM</span>
+          <span style="left: 412px">7:00<br/> AM</span>
+          <span style="left: 472px">8:00<br/> AM</span>
+          <span style="left: 532px">9:00<br/> AM</span>
+          <span style="left: 592px">10:00<br/> AM</span>
+          <span style="left: 652px">11:00<br/> AM</span>
+          <span style="left: 712px">12:00<br/> AM</span>
+          <span style="left: 772px">1:00<br/> PM</span>
+          <span style="left: 832px">2:00<br/> PM</span>
+          <span style="left: 892px">3:00<br/> PM</span>
+          <span style="left: 952px">4:00<br/> PM</span>
+          <span style="left: 1012px">5:00<br/> PM</span>
+          <span style="left: 1072px">6:00<br/> PM</span>
+          <span style="left: 1132px">7:00<br/> PM</span>
+          <span style="left: 1192px">8:00<br/> PM</span>
+          <span style="left: 1252px">9:00<br/> PM</span>
+          <span style="left: 1312px">10:00<br/> PM</span>
+          <span style="left: 1372px">11:00<br/> PM</span>
+      </div>
+    </div>
+    <script type="text/javascript">
+      var CLIENT_ID = '195174286817-3m1as5sgmgkus4ssqbcl76bm28u1o9rl.apps.googleusercontent.com';
+      var API_KEY = 'AIzaSyCjjNOnaq7cPzxDsD-JU6UbSYczOyj50Gg';
+      var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"];
+      var SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
+      var authorizeButton = document.getElementById('authorize-button');
+      var signoutButton = document.getElementById('signout-button');
+      function handleClientLoad() {
+        gapi.load('client:auth2', initClient);
+      }
+      function initClient() {
+        gapi.client.init({
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          discoveryDocs: DISCOVERY_DOCS,
+          scope: SCOPES
+        }).then(function () {
+          gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+          updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+          authorizeButton.onclick = handleAuthClick;
+          signoutButton.onclick = handleSignoutClick;
+        });
+      }
+      function updateSigninStatus(isSignedIn) {
+        if (isSignedIn) {
+          authorizeButton.style.display = 'none';
+          signoutButton.style.display = 'block';
+          listUpcomingEvents();
+          myFunction();
+        } else {
+          authorizeButton.style.display = 'block';
+          signoutButton.style.display = 'none';
+        }
+      }
+      function handleAuthClick(event) {
+        gapi.auth2.getAuthInstance().signIn();
+      }
+      function handleSignoutClick(event) {
+        gapi.auth2.getAuthInstance().signOut();
+      }
+      function appendPre(message) {
+        var pre = document.getElementById('content');
+        var textContent = document.createTextNode(message + '\n');
+        pre.appendChild(textContent);
+      }
+      function listUpcomingEvents() {
+        var idArr = [];
+        gapi.client.calendar.calendarList.list({
+            "kind": "calendar#calendarList",
+        }).then(function(res) {
+          var list = res.result.items;
+            if(list.length > 0) {
+              for(var i=0; i<list.length; i++) {
+                idArr.push(list[i].id);
+              }
+            }
+            getEvents(idArr);
+          });
+      }
+      var calendar = [];
+      function getEvents(arr) {
+        var startT = []
+        var endT = [];
+        var nameArr = [];
+        var promises = [];
+        for(var i=0; i<arr.length; i++) {
+          promises.push(gapi.client.calendar.events.list({
+            'calendarId': arr[i],
+            'timeMin': (new Date()).toISOString(),
+            'showDeleted': false,
+            'singleEvents': true,
+            'maxResults': 10,
+            'orderBy': 'startTime'
+          }).then(function(response) {
+            var events = response.result.items;
+            for(var k=0; k<events.length; k++) {
+              var stD = new Date(events[k].start.dateTime);
+              var enD = new Date(events[k].end.dateTime);
+              var hrD = stD.getHours();
+              var mnD = stD.getMinutes();
+              if(mnD == '0') {
+                mnD = '00';
+              }
+              var ehrD = enD.getHours();
+              var emnD = enD.getMinutes();
+              if(emnD == '0') {
+                emnD = '00';
+              }
+              calendar.push([response.result.summary, hrD+":"+mnD, ehrD+":"+emnD]);
+            }
+          }));
+        }
+        Promise.all(promises).then(function(){
+          calendar.forEach(array);
+        });
+      }
+      mainDiv = document.getElementById('calendar');
+
+      function array(item, index) {
+        var div = document.querySelector("[data-name='"+item[0]+"']");
+        if(!div) {
+
+          var div = document.createElement('div');
+          div.id = "X"+index;
+          div.className = 'row';
+          div.dataset.name=item[0];
+
+          var names = document.getElementById('names');
+          var nameDiv = document.createElement('div');
+          var nameP = document.createElement('p');
+          nameDiv.className = 'name';
+          nameDiv.id = 'name'+index;
+          if(index == calendar.length-1){
+            nameDiv.style.borderBottom = '1px solid #EEEFEF';
+          }
+          nameP.appendChild(document.createTextNode(item[0]));
+          nameDiv.appendChild(nameP);
+          names.appendChild(nameDiv);
+          mainDiv.appendChild(div);
+
+          for (i = 0; i <= 23; i++) {
+            var timeDiv = document.createElement('div');
+            timeDiv.className = 'time';
+            div.appendChild(timeDiv);
+          }
+        }
+
+        if(parseInt(item[1].substr(0, 2)) < 10) {
+          var time = item[1].substr(1, 1);
+        } else {
+          var time = item[1].substr(0, 2);
+        }
+        if(parseInt(item[1].substr(2, 2)) < 10) {
+          var time2 = item[1].substr(3, 1);
+        } else {
+          var time2 = item[1].substr(3, 2);
+        }
+
+        if(parseInt(time)) {
+          var min = item[1].substr(0, 2);
+          var min2 = item[1].substr(3, 2);
+          var min3 = item[2].substr(0, 2);
+          var min4 = item[2].substr(3, 2);
+          var diffHours = ((parseInt(min3) - parseInt(min))*60)-parseInt(min2)+parseInt(min4);
+        }
+
+        var target = div.childNodes[parseInt(time)];
+        var line = document.createElement('div');
+        line.style.width = diffHours+'px';
+        line.style.height = '25px';
+        line.style.backgroundColor = getRandomColor();
+        line.style.position = 'relative';
+        line.style.top = '10px';
+        if(min2){
+          line.style.left = min2+'px';
+        }
+        target.appendChild(line);
+
+        var info = document.createElement('div');
+        info.className = 'timeDiv';
+        info.style.width = '170px';
+        info.style.height = '100px';
+        info.style.backgroundColor = '#f8f9fa';
+        info.style.position = 'relative';
+        info.style.top = '10px';
+        info.style.zIndex = '1';
+        info.style.border = '1px solid #EEEFEF';
+        if(min2){
+          if(min > 20){
+            if(min2 == '00'){
+              min2 = min2 - 112;
+            } else {
+              min2 = min2 - 142;
+            }
+          }
+          info.style.left = min2+'px';
+        }
+        var infoSpan = document.createElement('span');
+        infoSpan.appendChild(document.createTextNode('Booked - '+Math.round(diffHours/60)+' Hours'));
+        infoSpan.className = "infoSpan";
+        info.appendChild(infoSpan);
+        var infoSpan2 = document.createElement('span');
+        infoSpan2.appendChild(document.createTextNode(item[1]+' - '+item[2]));
+        infoSpan2.className = "infoSpan2";
+        info.appendChild(infoSpan2);
+        var infoSpan3 = document.createElement('span');
+        infoSpan3.appendChild(document.createTextNode(item[0]));
+        infoSpan3.className = "infoSpan3";
+        info.appendChild(infoSpan3);
+        target.appendChild(info);
+      }
+
+      function getRandomColor() {
+        //var colors = ['#4BC800', '#E53935', '#318BFA', '#92278F', '#EB6965', '#F7941E'];
+        var letters = '0123456789ABCDEF';
+        var color = '#';
+        for (var i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      }
+      function myFunction() {
+        var today = new Date();
+        var dd = today.getDate();
+        var mm = today.getMonth()+1;
+        var yyyy = today.getFullYear();
+        today = mm + '/' + dd + '/' + yyyy;
+        document.getElementById("datetime").innerHTML = today + " (Today)";
+      }
+      myFunction();
+    </script>
+  </body>
+</html>
